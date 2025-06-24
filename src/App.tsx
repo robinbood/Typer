@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Clock, RotateCcw, Target, Zap, Award, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Clock, RotateCcw, Target, Zap, Award, TrendingUp } from "lucide-react";
 
 interface TypingStats {
   wpm: number;
@@ -23,41 +23,41 @@ interface WpmHistory {
   wpm: number;
 }
 
-type TestState = 'idle' | 'active' | 'completed' | 'paused';
-type Difficulty = 'easy' | 'medium' | 'hard' | 'custom';
-type TestMode = 'time' | 'words' | 'quote';
+type TestState = "idle" | "active" | "completed" | "paused";
+type Difficulty = "easy" | "medium" | "hard" | "custom";
+type TestMode = "time" | "words" | "quote";
 
 const sampleTexts = {
   easy: [
     "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet.",
     "A journey of a thousand miles begins with a single step. Every great achievement starts small.",
     "Life is what happens when you are busy making other plans. Stay present in the moment.",
-    "The only way to do great work is to love what you do. Passion drives excellence."
+    "The only way to do great work is to love what you do. Passion drives excellence.",
   ],
   medium: [
     "Technology has revolutionized the way we communicate and interact with the world around us. From smartphones to social media, digital innovation continues to shape our daily experiences.",
     "Success is not final, failure is not fatal: it is the courage to continue that counts. Resilience and perseverance are the keys to overcoming obstacles.",
     "The best time to plant a tree was twenty years ago. The second best time is now. Taking action today is always better than waiting for tomorrow.",
-    "Innovation distinguishes between a leader and a follower in today's competitive landscape. Creative thinking and bold decisions separate the best from the rest."
+    "Innovation distinguishes between a leader and a follower in today's competitive landscape. Creative thinking and bold decisions separate the best from the rest.",
   ],
   hard: [
     "Pseudopseudohypoparathyroidism is an extremely rare genetic disorder that affects calcium and phosphate metabolism, characterized by resistance to parathyroid hormone signaling pathways.",
     "The phenomenon of quantum entanglement demonstrates the fundamental interconnectedness of particles across vast distances, challenging our classical understanding of reality and causation.",
     "Antidisestablishmentarianism represents the philosophical opposition to the withdrawal of state support from established religious institutions, particularly in 19th-century Britain.",
-    "Supercalifragilisticexpialidocious exemplifies the creative potential of linguistic construction through morphological blending, demonstrating how language can be playfully manipulated."
+    "Supercalifragilisticexpialidocious exemplifies the creative potential of linguistic construction through morphological blending, demonstrating how language can be playfully manipulated.",
   ],
   custom: [
-    "Create your own custom text by selecting this option and entering your preferred typing material."
-  ]
+    "Create your own custom text by selecting this option and entering your preferred typing material.",
+  ],
 };
 
 const TypingSpeedApp: React.FC = () => {
-  const [testText, setTestText] = useState<string>('');
-  const [customText, setCustomText] = useState<string>('');
-  const [userInput, setUserInput] = useState<string>('');
-  const [testState, setTestState] = useState<TestState>('idle');
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
-  const [testMode, setTestMode] = useState<TestMode>('quote');
+  const [testText, setTestText] = useState<string>("");
+  const [customText, setCustomText] = useState<string>("");
+  const [userInput, setUserInput] = useState<string>("");
+  const [testState, setTestState] = useState<TestState>("idle");
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [testMode, setTestMode] = useState<TestMode>("quote");
   const [targetTime, setTargetTime] = useState<number>(60);
   const [targetWords, setTargetWords] = useState<number>(50);
   const [startTime, setStartTime] = useState<number>(0);
@@ -71,75 +71,90 @@ const TypingSpeedApp: React.FC = () => {
     incorrectChars: 0,
     totalChars: 0,
     timeElapsed: 0,
-    consistency: 0
+    consistency: 0,
   });
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [currentCharIndex, setCurrentCharIndex] = useState<number>(0);
   const [capsLockWarning, setCapsLockWarning] = useState<boolean>(false);
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const generateText = useCallback((difficulty: Difficulty): string => {
-    if (difficulty === 'custom' && customText.trim()) {
-      return customText.trim();
-    }
-    const texts = sampleTexts[difficulty] || sampleTexts.medium;
-    return texts[Math.floor(Math.random() * texts.length)];
-  }, [customText]);
-
-  const calculateStats = useCallback((input: string, text: string, timeElapsed: number, wpmHist: WpmHistory[]): TypingStats => {
-    const totalChars = input.length;
-    let correctChars = 0;
-    let incorrectChars = 0;
-
-    for (let i = 0; i < totalChars; i++) {
-      if (i < text.length && input[i] === text[i]) {
-        correctChars++;
-      } else {
-        incorrectChars++;
+  const generateText = useCallback(
+    (difficulty: Difficulty): string => {
+      if (difficulty === "custom" && customText.trim()) {
+        return customText.trim();
       }
-    }
+      const texts = sampleTexts[difficulty] || sampleTexts.medium;
+      return texts[Math.floor(Math.random() * texts.length)];
+    },
+    [customText]
+  );
 
-    const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 0;
-    const wordsTyped = totalChars / 5;
-    const timeInMinutes = timeElapsed / 60;
-    const grossWpm = timeInMinutes > 0 ? Math.round(wordsTyped / timeInMinutes) : 0;
-    const errorsPerMinute = timeInMinutes > 0 ? incorrectChars / timeInMinutes : 0;
-    const netWpm = Math.max(0, Math.round(grossWpm - errorsPerMinute));
+  const calculateStats = useCallback(
+    (
+      input: string,
+      text: string,
+      timeElapsed: number,
+      wpmHist: WpmHistory[]
+    ): TypingStats => {
+      const totalChars = input.length;
+      let correctChars = 0;
+      let incorrectChars = 0;
 
-    // Calculate consistency (lower standard deviation = higher consistency)
-    let consistency = 100;
-    if (wpmHist.length > 1) {
-      const wpmValues = wpmHist.map(h => h.wpm);
-      const mean = wpmValues.reduce((a, b) => a + b, 0) / wpmValues.length;
-      const variance = wpmValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / wpmValues.length;
-      const stdDev = Math.sqrt(variance);
-      consistency = Math.max(0, Math.min(100, 100 - (stdDev * 2)));
-    }
+      for (let i = 0; i < totalChars; i++) {
+        if (i < text.length && input[i] === text[i]) {
+          correctChars++;
+        } else {
+          incorrectChars++;
+        }
+      }
 
-    return {
-      wpm: netWpm,
-      rawWpm: grossWpm,
-      accuracy: Math.round(accuracy * 100) / 100,
-      correctChars,
-      incorrectChars,
-      totalChars,
-      timeElapsed,
-      consistency: Math.round(consistency)
-    };
-  }, []);
+      const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 0;
+      const wordsTyped = totalChars / 5;
+      const timeInMinutes = timeElapsed / 60;
+      const grossWpm =
+        timeInMinutes > 0 ? Math.round(wordsTyped / timeInMinutes) : 0;
+      const errorsPerMinute =
+        timeInMinutes > 0 ? incorrectChars / timeInMinutes : 0;
+      const netWpm = Math.max(0, Math.round(grossWpm - errorsPerMinute));
+
+      // Calculate consistency (lower standard deviation = higher consistency)
+      let consistency = 100;
+      if (wpmHist.length > 1) {
+        const wpmValues = wpmHist.map((h) => h.wpm);
+        const mean = wpmValues.reduce((a, b) => a + b, 0) / wpmValues.length;
+        const variance =
+          wpmValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) /
+          wpmValues.length;
+        const stdDev = Math.sqrt(variance);
+        consistency = Math.max(0, Math.min(100, 100 - stdDev * 2));
+      }
+
+      return {
+        wpm: netWpm,
+        rawWpm: grossWpm,
+        accuracy: Math.round(accuracy * 100) / 100,
+        correctChars,
+        incorrectChars,
+        totalChars,
+        timeElapsed,
+        consistency: Math.round(consistency),
+      };
+    },
+    []
+  );
 
   const startTest = useCallback(() => {
     const newText = generateText(difficulty);
     setTestText(newText);
-    setUserInput('');
+    setUserInput("");
     setCurrentCharIndex(0);
     setWpmHistory([]);
-    setTestState('active');
+    setTestState("active");
     setStartTime(Date.now());
     setCurrentTime(Date.now());
-    
+
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -150,13 +165,13 @@ const TypingSpeedApp: React.FC = () => {
   }, [difficulty, generateText]);
 
   const pauseTest = useCallback(() => {
-    if (testState === 'active') {
-      setTestState('paused');
+    if (testState === "active") {
+      setTestState("paused");
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-    } else if (testState === 'paused') {
-      setTestState('active');
+    } else if (testState === "paused") {
+      setTestState("active");
       timerRef.current = setInterval(() => {
         setCurrentTime(Date.now());
       }, 100);
@@ -167,123 +182,156 @@ const TypingSpeedApp: React.FC = () => {
   }, [testState]);
 
   const resetTest = useCallback(() => {
-    setTestState('idle');
-    setUserInput('');
+    setTestState("idle");
+    setUserInput("");
     setCurrentCharIndex(0);
     setCurrentTime(0);
     setWpmHistory([]);
     setCapsLockWarning(false);
-    
+
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
   }, []);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (testState !== 'active') return;
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (testState !== "active") return;
 
-    const value = e.target.value;
-    setUserInput(value);
-    setCurrentCharIndex(value.length);
+      const value = e.target.value;
+      setUserInput(value);
+      setCurrentCharIndex(value.length);
 
-    const timeElapsed = (currentTime - startTime) / 1000;
-    
-    // Update WPM history every 2 seconds
-    if (timeElapsed > 0 && Math.floor(timeElapsed) % 2 === 0 && Math.floor(timeElapsed) !== wpmHistory[wpmHistory.length - 1]?.time) {
-      const wordsTyped = value.length / 5;
-      const currentWpm = (wordsTyped / (timeElapsed / 60));
-      setWpmHistory(prev => [...prev, { time: Math.floor(timeElapsed), wpm: Math.round(currentWpm) }]);
-    }
+      const timeElapsed = (currentTime - startTime) / 1000;
 
-    const currentStats = calculateStats(value, testText, timeElapsed, wpmHistory);
-    setStats(currentStats);
-
-    // Check completion conditions
-    const isCompleted = 
-      (testMode === 'quote' && value.length === testText.length) ||
-      (testMode === 'time' && timeElapsed >= targetTime) ||
-      (testMode === 'words' && value.split(' ').length >= targetWords);
-
-    if (isCompleted) {
-      setTestState('completed');
-      
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
+      // Update WPM history every 2 seconds
+      if (
+        timeElapsed > 0 &&
+        Math.floor(timeElapsed) % 2 === 0 &&
+        Math.floor(timeElapsed) !== wpmHistory[wpmHistory.length - 1]?.time
+      ) {
+        const wordsTyped = value.length / 5;
+        const currentWpm = wordsTyped / (timeElapsed / 60);
+        setWpmHistory((prev) => [
+          ...prev,
+          { time: Math.floor(timeElapsed), wpm: Math.round(currentWpm) },
+        ]);
       }
 
-      const result: TestResult = {
-        ...currentStats,
-        timestamp: new Date(),
-        difficulty,
-        textLength: testText.length
-      };
-      
-      setTestResults(prev => [result, ...prev].slice(0, 20)); // Keep last 20 results
-    }
-  }, [testState, currentTime, startTime, calculateStats, testText, difficulty, testMode, targetTime, targetWords, wpmHistory]);
+      const currentStats = calculateStats(
+        value,
+        testText,
+        timeElapsed,
+        wpmHistory
+      );
+      setStats(currentStats);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Detect Caps Lock
-    if (e.getModifierState && e.getModifierState('CapsLock')) {
-      setCapsLockWarning(true);
-      setTimeout(() => setCapsLockWarning(false), 3000);
-    }
+      // Check completion conditions
+      const isCompleted =
+        (testMode === "quote" && value.length === testText.length) ||
+        (testMode === "time" && timeElapsed >= targetTime) ||
+        (testMode === "words" && value.split(" ").length >= targetWords);
 
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      if (testState === 'idle') {
-        startTest();
-      } else if (testState === 'completed') {
-        resetTest();
+      if (isCompleted) {
+        setTestState("completed");
+
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+
+        const result: TestResult = {
+          ...currentStats,
+          timestamp: new Date(),
+          difficulty,
+          textLength: testText.length,
+        };
+
+        setTestResults((prev) => [result, ...prev].slice(0, 20)); // Keep last 20 results
       }
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      if (testState === 'active' || testState === 'paused') {
-        pauseTest();
+    },
+    [
+      testState,
+      currentTime,
+      startTime,
+      calculateStats,
+      testText,
+      difficulty,
+      testMode,
+      targetTime,
+      targetWords,
+      wpmHistory,
+    ]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Detect Caps Lock
+      if (e.getModifierState && e.getModifierState("CapsLock")) {
+        setCapsLockWarning(true);
+        setTimeout(() => setCapsLockWarning(false), 3000);
       }
-    }
-  }, [testState, startTest, resetTest, pauseTest]);
+
+      if (e.key === "Tab") {
+        e.preventDefault();
+        if (testState === "idle") {
+          startTest();
+        } else if (testState === "completed") {
+          resetTest();
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        if (testState === "active" || testState === "paused") {
+          pauseTest();
+        }
+      }
+    },
+    [testState, startTest, resetTest, pauseTest]
+  );
 
   const getCharacterClass = (index: number): string => {
     if (index >= userInput.length) {
-      return index === currentCharIndex ? 'bg-blue-200 animate-pulse' : 'text-gray-400';
+      return index === currentCharIndex
+        ? "bg-blue-200 animate-pulse"
+        : "text-gray-400";
     }
-    
+
     if (userInput[index] === testText[index]) {
-      return 'text-green-600 bg-green-100';
+      return "text-green-600 bg-green-100";
     } else {
-      return 'text-red-600 bg-red-100';
+      return "text-red-600 bg-red-100";
     }
   };
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const getPerformanceMessage = (wpm: number, accuracy: number): string => {
-    if (accuracy < 70) return "Focus on accuracy first, then speed will follow! 🎯";
+    if (accuracy < 70)
+      return "Focus on accuracy first, then speed will follow! 🎯";
     if (wpm < 20) return "Great start! Keep practicing consistently. 🌱";
-    if (wpm < 40) return "Good progress! You're building solid fundamentals. 📈";
+    if (wpm < 40)
+      return "Good progress! You're building solid fundamentals. 📈";
     if (wpm < 60) return "Excellent! You're becoming quite proficient. ⭐";
     if (wpm < 80) return "Outstanding! You're in the top tier of typists. 🏆";
     return "Incredible! You're a true typing master! 🚀";
   };
 
   const getAccuracyColor = (accuracy: number): string => {
-    if (accuracy >= 95) return 'text-green-600 bg-green-50';
-    if (accuracy >= 90) return 'text-blue-600 bg-blue-50';
-    if (accuracy >= 80) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (accuracy >= 95) return "text-green-600 bg-green-50";
+    if (accuracy >= 90) return "text-blue-600 bg-blue-50";
+    if (accuracy >= 80) return "text-yellow-600 bg-yellow-50";
+    return "text-red-600 bg-red-50";
   };
 
   const getWpmColor = (wpm: number): string => {
-    if (wpm >= 80) return 'text-purple-600 bg-purple-50';
-    if (wpm >= 60) return 'text-green-600 bg-green-50';
-    if (wpm >= 40) return 'text-blue-600 bg-blue-50';
-    if (wpm >= 20) return 'text-yellow-600 bg-yellow-50';
-    return 'text-gray-600 bg-gray-50';
+    if (wpm >= 80) return "text-purple-600 bg-purple-50";
+    if (wpm >= 60) return "text-green-600 bg-green-50";
+    if (wpm >= 40) return "text-blue-600 bg-blue-50";
+    if (wpm >= 20) return "text-yellow-600 bg-yellow-50";
+    return "text-gray-600 bg-gray-50";
   };
 
   useEffect(() => {
@@ -302,7 +350,9 @@ const TypingSpeedApp: React.FC = () => {
             <Zap className="inline-block mr-2 text-blue-600" />
             TypeMaster Pro
           </h1>
-          <p className="text-gray-600">Test and improve your typing speed with precision</p>
+          <p className="text-gray-600">
+            Test and improve your typing speed with precision
+          </p>
         </header>
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -311,11 +361,11 @@ const TypingSpeedApp: React.FC = () => {
             <div className="flex items-center gap-2">
               <Target className="text-blue-600" size={20} />
               <span className="font-medium">Mode:</span>
-              <select 
-                value={testMode} 
+              <select
+                value={testMode}
                 onChange={(e) => setTestMode(e.target.value as TestMode)}
                 className="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={testState === 'active'}
+                disabled={testState === "active"}
               >
                 <option value="quote">Quote</option>
                 <option value="time">Timed</option>
@@ -323,14 +373,14 @@ const TypingSpeedApp: React.FC = () => {
               </select>
             </div>
 
-            {testMode === 'time' && (
+            {testMode === "time" && (
               <div className="flex items-center gap-2">
                 <span className="font-medium">Duration:</span>
-                <select 
-                  value={targetTime} 
+                <select
+                  value={targetTime}
                   onChange={(e) => setTargetTime(Number(e.target.value))}
                   className="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={testState === 'active'}
+                  disabled={testState === "active"}
                 >
                   <option value={15}>15s</option>
                   <option value={30}>30s</option>
@@ -341,14 +391,14 @@ const TypingSpeedApp: React.FC = () => {
               </div>
             )}
 
-            {testMode === 'words' && (
+            {testMode === "words" && (
               <div className="flex items-center gap-2">
                 <span className="font-medium">Word Count:</span>
-                <select 
-                  value={targetWords} 
+                <select
+                  value={targetWords}
                   onChange={(e) => setTargetWords(Number(e.target.value))}
                   className="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={testState === 'active'}
+                  disabled={testState === "active"}
                 >
                   <option value={25}>25</option>
                   <option value={50}>50</option>
@@ -357,14 +407,14 @@ const TypingSpeedApp: React.FC = () => {
                 </select>
               </div>
             )}
-            
+
             <div className="flex items-center gap-2">
               <span className="font-medium">Difficulty:</span>
-              <select 
-                value={difficulty} 
+              <select
+                value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value as Difficulty)}
                 className="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={testState === 'active'}
+                disabled={testState === "active"}
               >
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>
@@ -372,7 +422,7 @@ const TypingSpeedApp: React.FC = () => {
                 <option value="custom">Custom</option>
               </select>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Clock className="text-green-600" size={20} />
               <span className="font-medium">Time:</span>
@@ -382,7 +432,7 @@ const TypingSpeedApp: React.FC = () => {
             </div>
           </div>
 
-          {difficulty === 'custom' && testState === 'idle' && (
+          {difficulty === "custom" && testState === "idle" && (
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Custom Text:
@@ -403,12 +453,14 @@ const TypingSpeedApp: React.FC = () => {
             </div>
           )}
 
-          {testState === 'paused' && (
+          {testState === "paused" && (
             <div className="text-center py-8">
               <div className="text-gray-500 mb-4">
                 <Clock size={48} className="mx-auto mb-2 text-yellow-400" />
                 <p className="text-lg">Test Paused</p>
-                <p className="text-sm">Press Escape or click Resume to continue</p>
+                <p className="text-sm">
+                  Press Escape or click Resume to continue
+                </p>
               </div>
               <button
                 onClick={pauseTest}
@@ -425,7 +477,7 @@ const TypingSpeedApp: React.FC = () => {
             </div>
           )}
 
-          {testState === 'idle' && (
+          {testState === "idle" && (
             <div className="text-center py-8">
               <div className="text-gray-500 mb-4">
                 <Zap size={48} className="mx-auto mb-2 text-blue-400" />
@@ -441,10 +493,10 @@ const TypingSpeedApp: React.FC = () => {
             </div>
           )}
 
-          {(testState === 'active' || testState === 'completed') && (
+          {(testState === "active" || testState === "completed") && (
             <>
               <div className="mb-6 p-4 bg-gray-50 rounded-lg font-mono text-lg leading-relaxed">
-                {testText.split('').map((char, index) => (
+                {testText.split("").map((char, index) => (
                   <span key={index} className={getCharacterClass(index)}>
                     {char}
                   </span>
@@ -457,9 +509,9 @@ const TypingSpeedApp: React.FC = () => {
                 value={userInput}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder={testState === 'paused' ? 'Test paused...' : 'Start typing here...'}
+                placeholder="Start typing here..."
                 className="w-full p-4 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 font-mono"
-                disabled={testState === 'completed' || testState === 'paused'}
+                disabled={testState !== "active"}
               />
 
               <div className="flex justify-between items-center mt-4">
@@ -467,9 +519,9 @@ const TypingSpeedApp: React.FC = () => {
                   <button
                     onClick={pauseTest}
                     className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
-                    disabled={testState !== 'active'}
+                    disabled={testState !== "active"}
                   >
-                    {testState === 'paused' ? 'Resume' : 'Pause'}
+                    Pause
                   </button>
                   <button
                     onClick={resetTest}
@@ -485,29 +537,43 @@ const TypingSpeedApp: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-                <div className={`p-4 rounded-lg text-center ${getWpmColor(stats.wpm)}`}>
+                <div
+                  className={`p-4 rounded-lg text-center ${getWpmColor(
+                    stats.wpm
+                  )}`}
+                >
                   <div className="text-2xl font-bold">{stats.wpm}</div>
                   <div className="text-sm">WPM</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-gray-600">{stats.rawWpm}</div>
+                  <div className="text-2xl font-bold text-gray-600">
+                    {stats.rawWpm}
+                  </div>
                   <div className="text-sm text-gray-600">Raw WPM</div>
                 </div>
-                <div className={`p-4 rounded-lg text-center ${getAccuracyColor(stats.accuracy)}`}>
+                <div
+                  className={`p-4 rounded-lg text-center ${getAccuracyColor(
+                    stats.accuracy
+                  )}`}
+                >
                   <div className="text-2xl font-bold">{stats.accuracy}%</div>
                   <div className="text-sm">Accuracy</div>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-purple-600">{stats.consistency}%</div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {stats.consistency}%
+                  </div>
                   <div className="text-sm text-gray-600">Consistency</div>
                 </div>
                 <div className="bg-red-50 p-4 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-red-600">{stats.incorrectChars}</div>
+                  <div className="text-2xl font-bold text-red-600">
+                    {stats.incorrectChars}
+                  </div>
                   <div className="text-sm text-gray-600">Errors</div>
                 </div>
               </div>
 
-              {testState === 'completed' && (
+              {testState === "completed" && (
                 <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Award className="text-green-600" size={20} />
@@ -559,28 +625,44 @@ const TypingSpeedApp: React.FC = () => {
                 </thead>
                 <tbody>
                   {testResults.map((result, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-2 text-sm">{result.timestamp.toLocaleDateString()}</td>
+                    <tr
+                      key={index}
+                      className="border-b border-gray-100 hover:bg-gray-50"
+                    >
+                      <td className="py-2 text-sm">
+                        {result.timestamp.toLocaleDateString()}
+                      </td>
                       <td className="py-2">
                         <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                           {testMode}
                         </span>
                       </td>
                       <td className="py-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          result.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                          result.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          result.difficulty === 'hard' ? 'bg-red-100 text-red-800' :
-                          'bg-purple-100 text-purple-800'
-                        }`}>
+                        <span
+                          className={`px-2 py-1 rounded text-xs ${
+                            result.difficulty === "easy"
+                              ? "bg-green-100 text-green-800"
+                              : result.difficulty === "medium"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : result.difficulty === "hard"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-purple-100 text-purple-800"
+                          }`}
+                        >
                           {result.difficulty}
                         </span>
                       </td>
-                      <td className="py-2 font-mono font-semibold">{result.wpm}</td>
-                      <td className="py-2 font-mono text-gray-600">{result.rawWpm}</td>
+                      <td className="py-2 font-mono font-semibold">
+                        {result.wpm}
+                      </td>
+                      <td className="py-2 font-mono text-gray-600">
+                        {result.rawWpm}
+                      </td>
                       <td className="py-2 font-mono">{result.accuracy}%</td>
                       <td className="py-2 font-mono">{result.consistency}%</td>
-                      <td className="py-2 font-mono">{formatTime(result.timeElapsed)}</td>
+                      <td className="py-2 font-mono">
+                        {formatTime(result.timeElapsed)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
