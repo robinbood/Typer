@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Clock, RotateCcw, Target, Zap, Award, TrendingUp } from 'lucide-react';
 
-
 interface TypingStats {
   wpm: number;
   rawWpm: number;
@@ -76,7 +75,6 @@ const TypingSpeedApp: React.FC = () => {
   });
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [currentCharIndex, setCurrentCharIndex] = useState<number>(0);
-  const [showSettings, setShowSettings] = useState<boolean>(false);
   const [capsLockWarning, setCapsLockWarning] = useState<boolean>(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
@@ -102,14 +100,6 @@ const TypingSpeedApp: React.FC = () => {
         incorrectChars++;
       }
     }
-    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (testState !== 'active') return;
-
-    const value = e.target.value;
-    setUserInput(value);
-    setCurrentCharIndex(value.length);
-
-    const timeElapsed = (currentTime - startTime) / 1000;
 
     const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 0;
     const wordsTyped = totalChars / 5;
